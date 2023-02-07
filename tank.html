@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      canvas {
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="myCanvas" width="500" height="500"></canvas>
+    <script>
+      // Draw the tanks on the canvas
+      var canvas = document.getElementById("myCanvas");
+      var ctx = canvas.getContext("2d");
+
+      class Tank {
+        constructor(name, color) {
+          this.reset(name, color);
+        };
+        reset(name, color) {
+          this.name = name;
+          this.color = color;
+          this.x = 0;
+          this.y = 0;
+          this.angle = 0;
+          this.energy = 100;
+          this.delete = false;
+        }
+        setPosition(x, y) {
+          this.x = x;
+          this.y = y;
+        };
+        addPosition(x, y) {
+          this.x += x * Math.sin(this.angle);
+          this.y -= y * Math.cos(this.angle);
+        };
+        setAngle(angle) {
+          this .angle = angle;
+        };
+        addAngle(angle) {
+          this .angle += angle;
+        };
+      };
+
+      class Bullet {
+        constructor(owner_tank) {
+          this.reset(owner_tank);
+        };
+
+        reset(owner_tank) {
+          this.owner = owner_tank.name;
+          this.color = owner_tank.color;
+          this.x = owner_tank.x+20;
+          this.y = owner_tank.y+40;
+          this.angle = owner_tank.angle;
+          this.delete = false;
+
+        }
+        addPosition(x, y) {
+          this.x -= x * Math.sin(this.angle);
+          this.y += y * Math.cos(this.angle);
+        };
+      };
+
+      function createBullet(tank) {
+        for (bullet of bullets) {
+          if (bullet.delete) {
+            bullet.reset(tank);
+            return;
+          }
+        }
+        var bullet = new Bullet(tank);
+        bullets.push(bullet);
+        // console.log("bullet length:",bullets.length);
+      }
+
+      function drawTank(tank) {
+        ctx.save();
+        
+        ctx.translate(tank.x + 20, tank.y + 40);
+        ctx.rotate(tank.angle);
+
+        ctx.beginPath();
+        ctx.strokeStyle = "magenta";
+        ctx.rect (-30, -40, 60, 60);
+        ctx.stroke();
+
+        if (tank.delete) {
+          ctx.fillStyle = "grey";
+        } else {
+          ctx.fillStyle = tank.color;
+        }
+        
+        ctx.fillRect(-20, -40, 40, 20);
+        ctx.fillRect(-10, -20, 20, 40);
+        ctx.fillRect(-25, 0, 50, 10);
+
+        ctx.fillRect(-50, -50, tank.energy, 5);
+
+        ctx.restore();
+        
+      };
+
+      function drawBullet(bullet) {
+        ctx.save();
+        ctx.fillStyle = bullet.color;
+        ctx.fillRect(bullet.x, bullet.y, 5, 5);
+        ctx.restore();
+      }
+      
+      function drawBullets() {
+        for (bullet in bullets) {
+          drawBullet(bullet);
+        }
+      }
+      
+      const bullets = [];
+      const tanks = [new Tank("tank 1", "blue"),  new Tank("tank 2", "red")];
+      tanks[0].setPosition(50, 50);
+      tanks[1].setPosition(250, 50);
+      
+      for (tank of tanks) {
+        drawTank(tank);
+      }
+      
+      const key = {
+        left: 37,
+        up: 38,
+        right: 39,
+        down: 40,
+        r_shoot: 18,
+        a: 65,
+        w: 87,
+        d: 68,
+        s: 83,
+        l_shoot: 17,
+        space: 32
+      };
+
+      document.onkeydown = function(event) {
+        switch (event.keyCode) {
+          case key.left: // left arrow
+            tanks[0].addAngle(-0.1);
+            break;
+          case key.up: // up arrow
+            tanks[0].addPosition(-5,-5);
+            break;
+          case key.right: // right arrow
+            tanks[0].addAngle(0.1);
+            break;
+          case key.down: // down arrow
+            tanks[0].addPosition(5,5);
+            break;
+          case key.a: // A
+            tanks[1].addAngle(-0.1);
+            break;
+          case key.w: // W
+            tanks[1].addPosition(-5,-5);
+            break;
+          case key.d: // D
+            tanks[1].addAngle(0.1);
+            break;
+          case key.s: // S
+            tanks[1].addPosition(5,5);
+            break;
+          case key.r_shoot: // space bar          
+            createBullet(tanks[0]);
+            break;
+          case key.l_shoot: // space bar          
+            createBullet(tanks[1]);
+            break;
+          default:
+            // console.log("key:", event.keyCode);
+            break;
+        }
+      };
+      
+      function update() {
+
+        for (bullet of bullets) {
+          bullet.addPosition(10, 10)
+          if (bullet.x >= 500 || bullet.y >= 500 || bullet.x <= 0 || bullet.y <= 0) {
+            bullet.delete = true;
+          }
+          
+          if (bullet.delete)
+            continue;
+
+          for (tank of tanks) {
+            if (tank.delete == false && tank.name != bullet.owner) {
+              if (bullet.x >= tank.x && bullet.y >= tank.y && bullet.x <= tank.x+40 && bullet.y <= tank.y+60) {
+                
+                bullet.delete = true;
+                tank.energy -= 20;
+                if (tank.energy <= 0)
+                  tank.energy = 0;
+                console.log("Bomb!,"+tank.name+","+tank.energy);
+              }
+            }
+          }
+        }
+          
+        // Clear the canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (tank of tanks) {
+          drawTank(tank);
+        }
+        
+        for (bullet of bullets) {
+          if (bullet.delete == false) {
+            drawBullet(bullet);
+          }
+        }
+        
+        requestAnimationFrame(update);
+
+        for (tank of tanks) {
+          if (tank.energy <= 0 && tank.delete == false) {
+            tank.delete = true;
+            alert(tank.name +" is destroyed!");
+          }
+        }
+      }
+      
+      update();
+    </script>
+  </body>
+</html>
