@@ -1,6 +1,6 @@
 const WEAPONS = {
-  normal: { speed: 10, damage: 20 },
-  heavy: { speed: 5, damage: 40 }
+  normal: { speed: 10, damage: 20, cost: 2, size: 5 },
+  heavy: { speed: 5, damage: 40, cost: 5, size: 8 }
 };
 
 class Tank {
@@ -62,17 +62,20 @@ class Bullet {
 
     this.color = owner.color;
     if (!this.rect) {
-      this.rect = this.scene.add.rectangle(0, 0, 5, 5, this.color);
+      this.rect = this.scene.add.rectangle(0, 0, this.weapon.size, this.weapon.size, this.color);
     }
-    this.rect.x = owner.sprite.x + 0;
-    this.rect.y = owner.sprite.y + 0;
+    this.rect.width = this.weapon.size;
+    this.rect.height = this.weapon.size;
+    this.rect.x = owner.sprite.x;
+    this.rect.y = owner.sprite.y;
+
     this.angle = owner.sprite.rotation;
     this.delete = false;
   }
 
-  addPosition(x, y) {
-    this.rect.x -= x * Math.sin(this.angle);
-    this.rect.y += y * Math.cos(this.angle);
+  addPosition(distance) {
+    this.rect.x -= distance * Math.sin(this.angle);
+    this.rect.y += distance * Math.cos(this.angle);
   }
 }
 
@@ -110,20 +113,25 @@ class TankScene extends Phaser.Scene {
   }
 
   createBullet(tank) {
+
+    const weapon = WEAPONS[tank.currentWeapon];
+    if (tank.energy < weapon.cost) {
+      return;
+    }
+    tank.energy -= weapon.cost;
+    tank.updateEnergy();
+
     for (const bullet of this.bullets) {
       if (bullet.delete) {
-
         bullet.reset(tank, tank.currentWeapon);
         return;
       }
     }
     const bullet = new Bullet(this, tank, tank.currentWeapon);
-
     this.bullets.push(bullet);
   }
 
   update() {
-
     for (const tank of this.tanks) {
       if (tank.delete) continue;
       const act = tank.controller ? tank.controller(tank) : null;
@@ -141,7 +149,8 @@ class TankScene extends Phaser.Scene {
 
     for (const bullet of this.bullets) {
       const speed = bullet.weapon ? bullet.weapon.speed : 10;
-      bullet.addPosition(speed, speed);
+
+      bullet.addPosition(speed);
 
       if (
         bullet.rect.x >= 500 ||
@@ -179,7 +188,12 @@ class TankScene extends Phaser.Scene {
     for (const tank of this.tanks) {
       if (tank.energy <= 0 && !tank.delete) {
         tank.delete = true;
-        alert(tank.name + ' is destroyed!');
+
+        const result = document.getElementById('result');
+        if (result) {
+          result.textContent = tank.name + ' is destroyed!';
+        }
+        this.scene.pause();
       }
     }
   }
