@@ -22,12 +22,14 @@ function basicAI(tank, enemies, bullets) {
   const dist = Math.sqrt(dx * dx + dy * dy);
   const move = dist > 150 ? -3 : 0;
   const fire = Math.abs(diff) < 0.2 && dist < 200;
+
   // Switch weapon based on remaining energy
   if (tank.energy > 50) {
     tank.currentWeapon = 'heavy';
   } else if (tank.energy < 20) {
     tank.currentWeapon = 'normal';
   }
+
   return {turn, move, fire, weapon: tank.currentWeapon};
 }
 

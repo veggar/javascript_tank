@@ -5,12 +5,14 @@ const WEAPONS = {
 
 class Tank {
   constructor(scene, name, color, controller) {
+
     this.scene = scene;
     this.name = name;
     this.color = color;
     this.energy = 100;
     this.delete = false;
     this.angle = 0;
+
     this.currentWeapon = 'normal';
     this.controller = controller;
     this.sprite = scene.add.container(0, 0);
@@ -57,6 +59,7 @@ class Bullet {
   reset(owner, weaponKey) {
     this.owner = owner.name;
     this.weapon = WEAPONS[weaponKey];
+
     this.color = owner.color;
     if (!this.rect) {
       this.rect = this.scene.add.rectangle(0, 0, this.weapon.size, this.weapon.size, this.color);
@@ -65,6 +68,7 @@ class Bullet {
     this.rect.height = this.weapon.size;
     this.rect.x = owner.sprite.x;
     this.rect.y = owner.sprite.y;
+
     this.angle = owner.sprite.rotation;
     this.delete = false;
   }
@@ -109,6 +113,7 @@ class TankScene extends Phaser.Scene {
   }
 
   createBullet(tank) {
+
     const weapon = WEAPONS[tank.currentWeapon];
     if (tank.energy < weapon.cost) {
       return;
@@ -144,7 +149,9 @@ class TankScene extends Phaser.Scene {
 
     for (const bullet of this.bullets) {
       const speed = bullet.weapon ? bullet.weapon.speed : 10;
+
       bullet.addPosition(speed);
+
       if (
         bullet.rect.x >= 500 ||
         bullet.rect.y >= 500 ||
@@ -170,6 +177,7 @@ class TankScene extends Phaser.Scene {
             bullet.delete = true;
             const dmg = bullet.weapon ? bullet.weapon.damage : 20;
             tank.energy -= dmg;
+
             if (tank.energy < 0) tank.energy = 0;
             tank.updateEnergy();
           }
@@ -180,6 +188,7 @@ class TankScene extends Phaser.Scene {
     for (const tank of this.tanks) {
       if (tank.energy <= 0 && !tank.delete) {
         tank.delete = true;
+
         const result = document.getElementById('result');
         if (result) {
           result.textContent = tank.name + ' is destroyed!';
