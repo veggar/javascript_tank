@@ -1,11 +1,20 @@
+const WEAPONS = {
+  normal: { speed: 10, damage: 20 },
+  heavy: { speed: 5, damage: 40 }
+};
+
 class Tank {
-  constructor(scene, name, color) {
+  constructor(scene, name, color, controller) {
+
     this.scene = scene;
     this.name = name;
     this.color = color;
     this.energy = 100;
     this.delete = false;
     this.angle = 0;
+
+    this.currentWeapon = 'normal';
+    this.controller = controller;
     this.sprite = scene.add.container(0, 0);
 
     const graphics = scene.add.graphics();
@@ -42,13 +51,15 @@ class Tank {
 }
 
 class Bullet {
-  constructor(scene, owner) {
+  constructor(scene, owner, weaponKey) {
     this.scene = scene;
-    this.reset(owner);
+    this.reset(owner, weaponKey);
   }
 
-  reset(owner) {
+  reset(owner, weaponKey) {
     this.owner = owner.name;
+    this.weapon = WEAPONS[weaponKey];
+
     this.color = owner.color;
     if (!this.rect) {
       this.rect = this.scene.add.rectangle(0, 0, 5, 5, this.color);
@@ -89,39 +100,49 @@ class TankScene extends Phaser.Scene {
       d: 'D',
       s: 'S',
       r_shoot: Phaser.Input.Keyboard.KeyCodes.ALT,
-      l_shoot: Phaser.Input.Keyboard.KeyCodes.CONTROL
+      l_shoot: Phaser.Input.Keyboard.KeyCodes.CONTROL,
+      q: 'Q',
+      e: 'E'
     });
+
+    this.tanks[0].controller = (t) => AI.keyboardAI(this.cursors, this.keys.r_shoot, this.keys.q, t);
+    this.tanks[1].controller = (t) => AI.basicAI(t, this.tanks, this.bullets);
   }
 
   createBullet(tank) {
     for (const bullet of this.bullets) {
       if (bullet.delete) {
-        bullet.reset(tank);
+
+        bullet.reset(tank, tank.currentWeapon);
         return;
       }
     }
-    const bullet = new Bullet(this, tank);
+    const bullet = new Bullet(this, tank, tank.currentWeapon);
+
     this.bullets.push(bullet);
   }
 
   update() {
-    // tank 0 controls
-    if (this.cursors.left.isDown) this.tanks[0].addAngle(-0.1);
-    if (this.cursors.right.isDown) this.tanks[0].addAngle(0.1);
-    if (this.cursors.up.isDown) this.tanks[0].addPosition(-5, -5);
-    if (this.cursors.down.isDown) this.tanks[0].addPosition(5, 5);
 
-    // tank 1 controls
-    if (this.keys.a.isDown) this.tanks[1].addAngle(-0.1);
-    if (this.keys.d.isDown) this.tanks[1].addAngle(0.1);
-    if (this.keys.w.isDown) this.tanks[1].addPosition(-5, -5);
-    if (this.keys.s.isDown) this.tanks[1].addPosition(5, 5);
+    for (const tank of this.tanks) {
+      if (tank.delete) continue;
+      const act = tank.controller ? tank.controller(tank) : null;
+      if (act) {
+        if (act.turn) tank.addAngle(act.turn);
+        if (act.move) tank.addPosition(act.move, act.move);
+        if (act.fire) this.createBullet(tank);
+      }
 
-    if (Phaser.Input.Keyboard.JustDown(this.keys.r_shoot)) this.createBullet(this.tanks[0]);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.l_shoot)) this.createBullet(this.tanks[1]);
+      if (tank.energy < 100) {
+        tank.energy = Math.min(100, tank.energy + 0.05);
+        tank.updateEnergy();
+      }
+    }
 
     for (const bullet of this.bullets) {
-      bullet.addPosition(10, 10);
+      const speed = bullet.weapon ? bullet.weapon.speed : 10;
+      bullet.addPosition(speed, speed);
+
       if (
         bullet.rect.x >= 500 ||
         bullet.rect.y >= 500 ||
@@ -145,7 +166,9 @@ class TankScene extends Phaser.Scene {
             bullet.rect.y <= tank.sprite.y + 20
           ) {
             bullet.delete = true;
-            tank.energy -= 20;
+            const dmg = bullet.weapon ? bullet.weapon.damage : 20;
+            tank.energy -= dmg;
+
             if (tank.energy < 0) tank.energy = 0;
             tank.updateEnergy();
           }
